@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sql Mapper -->
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="trade">
+
+
+	<!-- Start 광태 -->
+	<!-- End 광태 -->
+
+	<!-- Start 우정 -->
+	<select id="getTradeCountByFoodSellNo" parameterType="string"
+		resultType="int">
+		select count(*) from trade where food_sell_no=#{value}
+	</select>
+	<!-- End 우정 -->
+
+	<!-- Start 정훈 -->
+	<!-- End 정훈 -->
+
+	<!-- Start 향걸 -->
+	<!-- End 향걸 -->
+
+	<!-- Start 지원 -->
+	<!-- [판매자] 판매음식번호에 해당하는 거래요청 리스트 -->
+	<resultMap type="tradeVO" id="foodSellTradeRM">
+		<result property="foodSellVO.foodSellNo" column="food_sell_no" />
+	</resultMap>
+	<select id="getSellerTradeListByFoodSellNo" parameterType="map"
+		resultMap="foodSellTradeRM">
+		select t.tr_no, t.tr_quantity, t.tr_req_date, t.tr_fin_date,
+		t.mem_id, t.food_sell_no, t.tr_status_no, s.tr_status
+		from (select
+		row_number() over(order by tr_no desc) as
+		rnum,tr_no,tr_quantity,tr_req_date,tr_fin_date,mem_id,food_sell_no,tr_status_no
+		from trade where food_sell_no=#{foodSellNo}) t,tr_status s
+		where
+		t.tr_status_no=s.tr_status_no and t.rnum between #{startRowNumber} and
+		#{endRowNumber}
+		order by t.tr_no desc
+	</select>
+	<!-- [판매자] 실제 거래완료 후 거래완료확인 하여 거래상태와 거래완료날짜를 바꿔줌 -->
+	<update id="completeTrade" parameterType="string">
+		update trade set 
+		tr_status_no=2 , tr_fin_date=sysdate
+		where tr_no=#{value}
+	</update>
+	<!-- [판매자] 전체거래내역 조회 -->
+	<resultMap type="tradeVO" id="sellerTradeRM">
+		<result property="foodSellVO.foodSellNo" column="food_sell_no" />
+		<result property="foodSellVO.trDate" column="tr_date" />
+		<result property="foodSellVO.loc" column="loc" />
+		<result property="foodSellVO.price" column="price" />
+		<result property="foodSellVO.foodName" column="food_name" />
+		<result property="foodSellVO.foodMainImg" column="food_main_img" />
+	</resultMap>
+	<select id="getAllSellerTradeList" parameterType="map" resultMap="sellerTradeRM">
+		SELECT tr_no, tr_quantity, tr_req_date, tr_fin_date, tr_status_no, food_sell_no, mem_id,
+	  		 tr_status, to_char(tr_date,'YYYY-MM-DD') as tr_date, loc, price, food_name
+		FROM (select row_number() over (order by t.tr_no desc) as rnum, t.tr_no, t.tr_quantity, 
+				t.tr_req_date, t.tr_fin_date, t.tr_status_no, t.food_sell_no, t.mem_id, 
+				ts.tr_status, fs.tr_date, fs.loc, fs.price, f.food_name, bm.mem_name 
+  			 from trade t, food_sell fs, food f, seller s, ban_mem bm, tr_status ts
+			 where s.mem_id=#{sellerId} 
+			 	and f.mem_id=s.mem_id
+				and	s.mem_id=bm.mem_id 
+				and t.food_sell_no=fs.food_sell_no
+				and fs.food_no=f.food_no
+				and t.tr_status_no=ts.tr_status_no) 
+		WHERE rnum between #{startRowNumber} and #{endRowNumber}
+		order by tr_no desc
+	</select>
+	<!-- [판매자] 전체 거래내역 개수 조회 -->
+	<select id="getAllSellerTradeCount" parameterType="string"
+		resultType="int">
+		select count(*) from trade t, food_Sell fs, food f, seller
+		s where t.food_sell_no=fs.food_sell_no
+		and fs.food_no=f.food_no and s.mem_id=f.mem_id and s.mem_id=#{value}
+	</select>
+	<!-- End 지원 -->
+
+	<!-- Start 영민 -->
+	<!-- End 영민 -->
+
+	<!-- Start 윤주 -->
+	<resultMap type="tradeVO" id="tradeRM2">
+		<result column="tr_no" property="trNo" />
+		<result column="tr_quantity" property="trQuantity" />
+		<result column="tr_req_date" property="trReqDate" />
+		<result column="tr_fin_date" property="trFinDate" />
+		<result column="food_sell_no" property="foodSellVO.foodSellNo" />
+		<result column="tr_status_no" property="trStatusNo" />
+		<result column="tr_status" property="trStatus" />
+		<result column="tr_date" property="foodSellVO.trDate" />
+		<result column="close_date" property="foodSellVO.closeDate" />
+		<result column="loc" property="foodSellVO.loc" />
+		<result column="price" property="foodSellVO.price" />
+		<result column="unit" property="foodSellVO.unit" />
+		<result column="food_no" property="foodSellVO.foodNo" />
+		<result column="food_name" property="foodSellVO.foodName" />
+		<result column="mem_id" property="foodSellVO.sellerVO.memId" />
+		<result column="mem_name" property="foodSellVO.sellerVO.memName" />
+		<result column="tel" property="foodSellVO.sellerVO.tel" />
+	</resultMap>
+	<select id="getTradeListByMemId" parameterType="map" resultMap="tradeRM2">
+		SELECT t.tr_no, t.tr_quantity, t.tr_req_date, t.food_sell_no,
+				trs.tr_status_no, trs.tr_status,
+				to_char(fs.tr_date, 'YYYY-MM-DD') as tr_date, to_char(fs.close_date, 'YYYY-MM-DD') as close_date, fs.loc, fs.price, fs.unit,
+				f.food_no, f.food_name,
+				m.mem_id, m.mem_name, m.tel
+		FROM ( select row_number() over(order by tr_no desc) as rnum, 
+			   tr_no, tr_quantity, tr_req_date, tr_fin_date, food_sell_no, tr_status_no, mem_id
+			   from trade where mem_id=#{memId}) t, food_sell fs, food f, tr_status trs, seller s, ban_mem m
+		WHERE t.food_sell_no=fs.food_sell_no 
+				and fs.food_no=f.food_no 
+				and f.mem_id=s.mem_id
+				and s.mem_id=m.mem_id
+				and t.tr_status_no=trs.tr_status_no 
+				and t.rnum between #{startRowNumber} and #{endRowNumber}
+				order by t.tr_no desc
+	</select>
+	<select id="getAllTradeCountByMemId" parameterType="string" resultType="int">
+		select count(*) from trade where mem_id=#{value}
+	</select>
+	<!-- End 윤주 -->
+</mapper>
+
+
+
+
+
+
+
+
+
+

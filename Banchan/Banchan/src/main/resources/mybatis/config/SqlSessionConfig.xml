@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>	
+<settings>
+  <!-- 자동으로 카멜케이스 규칙으로 변환 -->
+    <setting name="mapUnderscoreToCamelCase" value="true"/>
+ </settings> 
+	<typeAliases>		
+	<package name="org.kosta.banchan.model"/>
+	</typeAliases>	
+	<!-- mapper.xml 을 명시한다  -->
+	<mappers>	
+		<mapper resource="mybatis/config/feedback.xml"/>	
+		<mapper resource="mybatis/config/food.xml"/>	
+		<mapper resource="mybatis/config/member.xml"/>	
+		<mapper resource="mybatis/config/trade.xml"/>	
+		<mapper resource="mybatis/config/report.xml"/>	
+	</mappers>
+</configuration>
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,71 @@
+@charset "UTF-8";
+/* 페이징 */
+.pagination {
+	display: inline-block;
+	text-align: center;
+}
+
+.pagination a {
+	color: black;
+	float: left;
+	padding: 8px 16px;
+	text-decoration: none;
+	transition: background-color .3s;
+	font-size: 13px;
+}
+
+.pagination a.active {
+	background-color: #000;
+	color: white;
+}
+
+.pagination a:hover:not (.active ) {
+	background-color: #ddd;
+}
+
+#paginationContainer {
+	text-align: center;
+}
+/* 별점 css  */
+.star_rating {font-size:0; letter-spacing:-4px;}
+.star_rating a {
+    font-size:22px;
+    letter-spacing:0;
+    display:inline-block;
+    margin-left:5px;
+    color:#ccc;
+    text-decoration:none;
+}
+.star_rating a:first-child {margin-left:0;}
+.star_rating a.on {color:#ffcc00;}
+.home-top{
+   margin-top: 100px;
+}
+.nexthome{
+	margin-top: -50px;
+}
+
+/* 검색창  */
+.searchBtn{
+    margin: 2px 0 0 0;
+    background: none;
+    box-shadow: none;
+    border: 0;
+    color: #666666;
+    padding: 0 8px 0 10px;
+    border-left: solid 1px #ccc;
+}
+.searchForm{
+	margin-top: 10px; padding: 3px;
+    border: solid 1px #E4E4E4;
+    border-radius: 6px;
+    background-color: #fff;
+ }
+ .small-text{
+	border: 1px solid #E5E5E5;
+	font-size: 15px;
+	padding: 7px 12px 8px;
+	box-shadow: 0 0 0 4px rgba(236, 236, 236, 0.3);
+	color: #555;
+	background-color: #fff; 
+}

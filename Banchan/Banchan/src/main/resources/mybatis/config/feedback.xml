@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sql Mapper -->
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="feedback">
+
+	<!-- Start 광태 -->
+	<!-- End 광태 -->
+
+	<!-- Start 우정 -->
+	<!-- End 우정 -->
+
+	<!-- Start 정훈 -->
+			<!-- 댓글 작성 -->
+	<insert id="commentInsert" parameterType="questionVO">
+		insert into question(quest_no, quest_content, food_sell_no, quest_postdate, mem_id) 
+		values(question_seq.nextval, #{questContent}, #{foodSellNo}, sysdate, #{memId}) 
+	</insert>
+			<!-- resultMap -->
+	     <resultMap type="questionVO" id="qnaRM">
+        <result column="quest_no"  property="questNo" />
+        <result column="quest_content"  property="questContent"/>
+        <result column="quest_postdate" property="questPostdate"/>
+        <result column="food_sell_no" property="foodSellNo"/>
+        <result column="mem_id" property="memId"/>
+        <collection property="answerList" javaType="java.util.ArrayList"
+         ofType="answerVO" column="quest_no" select="getAllAnswerListByQuestNo"
+        ></collection>
+     </resultMap>
+     <!-- 댓글 목록에 답변목록 list setting -->
+     <select id="getAllAnswerListByQuestNo" parameterType="string" resultType="answerVO">
+      select ans_no,ans_content,ans_postdate,mem_id
+      from answer
+      where quest_no=#{questNo}
+    </select>
+			<!-- 댓글 목록 -->
+	<select id="commentList" parameterType="string" resultMap="qnaRM">
+		select quest_no, quest_content, food_sell_no, quest_postdate, mem_id
+		FROM question
+		where food_sell_no=#{value}
+		order by quest_no desc
+	</select>
+	
+			<!-- 댓글 수정 -->
+	<update id="commentUpdate" parameterType="questionVO">
+		 update question set quest_content = #{questContent}, quest_postdate=sysdate where quest_no = #{questNo}
+	</update>
+			<!-- 댓글 삭제 -->
+	<delete id="commentDelete" parameterType="questionVO">
+		delete from question where quest_no=#{questNo}
+	</delete>
+	
+   
+	<!-- End 정훈 -->
+
+	<!-- Start 향걸 -->
+	<!-- End 향걸 -->
+
+	<!-- Start 지원 -->
+	<!-- 등록음식 번호에 해당하는 후기 리스트 -->
+	<select id="getReviewListByFoodNo" parameterType="map" resultType="reviewVO" >
+		select fr.rev_no,fr.score,fr.rev_postdate,fr.rev_content,fr.food_no,fr.mem_id
+		from
+		(select row_number() over(order by r.rev_postdate desc) as rnum,
+		r.rev_no,r.score,r.rev_postdate,r.rev_content,r.food_no,r.mem_id
+		from review r, food f
+		where f.food_no=#{foodNo} and f.food_no=r.food_no) fr 
+		where fr.rnum between #{startRowNumber} and #{endRowNumber}
+	</select>
+	<!-- 등록음식 번호에 해당하는 후기 개수 -->
+	<select id="getAllReviewCountByFoodNo" parameterType="string" resultType="int">
+		select count(*)
+		from review r, food f
+		where f.food_no=#{value} and r.food_no=f.food_no
+	</select>
+	
+	
+	<!-- End 지원 -->
+
+	<!-- Start 영민 -->
+	<!-- End 영민 -->
+
+	<!-- Start 윤주 -->
+	<!-- 후기작성 -->
+	<insert id="reviewRegister" parameterType="reviewVO">
+		insert into review(rev_no,score,rev_postdate,rev_content,food_no,mem_id)
+		values(review_seq.nextval,#{score},sysdate,#{revContent},#{foodNo},#{memId})
+	</insert>
+	<update id="updateSellerScore" parameterType="string">
+		update seller set seller_score=
+		(select round(sum(score)/count(*),1)
+		from review r,food f
+		where f.mem_id=#{value} and r.food_no=f.food_no
+		)
+		where mem_id=#{value}
+	</update>
+	<update id="updateFoodScore" parameterType="string">
+		update food set food_score=
+		(select round(sum(score)/count(*),1)
+		from review r,food f
+		where f.food_no=#{value} and r.food_no=f.food_no )
+		where food_no=#{value}
+	</update>
+	<select id="getReviewListByFoodSellNo" parameterType="map"
+		resultType="reviewVO" >
+		select fr.rev_no,fr.score,fr.rev_postdate,fr.rev_content,fr.food_no,fr.mem_id
+		from
+		(select row_number() over(order by r.rev_postdate desc) as rnum,
+		r.rev_no,r.score,r.rev_postdate,r.rev_content,r.food_no,r.mem_id
+		from review r, food_sell fs
+		where fs.food_sell_no=#{foodSellNo} and fs.food_no=r.food_no) fr 
+		where fr.rnum between #{startRowNumber} and #{endRowNumber}
+		
+	</select>
+	<select id="getAllReviewCountByFoodSellNo" parameterType="string" resultType="int">
+		select count(*)
+		from review r, food_sell fs
+		where fs.food_sell_no=#{value} and r.food_no=fs.food_no
+	</select>
+	<!-- 답변작성 -->
+	<insert id="answerRegister" parameterType="answerVO"  >
+		<selectKey keyProperty="ansNo" order="BEFORE" resultType="string">
+			select answer_seq.nextval from dual
+		</selectKey>
+		insert into answer(ans_no,ans_content,ans_postdate,mem_id,quest_no)
+		values(#{ansNo},#{ansContent},sysdate,#{memId},#{questNo})		
+	</insert>
+	<select id="findAnswerByAnsNo" parameterType="string" resultType="answerVO">
+		select ans_content,ans_postdate,mem_id,quest_no
+		from answer
+		where ans_no=#{value}
+	</select>
+	<delete id="answerDelete" parameterType="string">
+		delete from answer where ans_no=#{value}
+	</delete>
+	<!-- End 윤주 -->
+</mapper>
+
+
+
+
+
+
+
+
+
+

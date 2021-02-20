@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sql Mapper -->
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="food">
+	<sql id="selectFood">
+		select food_no,food_name,mem_id,food_de,food_score,category_no,
+		food_main_img,food_postdate
+		from food
+	</sql>
+
+	<!-- Start 광태 -->
+	<!-- End 광태 -->
+
+	<!-- Start 우정 -->
+	<select id="deleteConfirmAjax" parameterType="string" resultType="int">
+		select count(*) from TRADE where food_sell_no=#{value}
+	</select>
+	<select id="getFoodListByMemId" parameterType="string"
+		resultType="foodVO">
+		select f.food_no,food_name,mem_id,food_de,food_score,category_no,
+		food_main_img,food_postdate,s.sell_check
+		from food f, (select distinct food_no, 1 as sell_check
+		from FOOD_SELL
+		where close_date>=sysdate) s
+		where mem_id=#{value} and f.food_no=s.food_no(+) order by food_postdate desc 
+	</select>
+	<select id="getTotalFoodCountByMemId" parameterType="string"
+		resultType="int">
+		select count(*) from food where mem_id=#{value}
+	</select>
+	<!-- 카테고리별 음식 -->
+	<select id="getTotalFoodCount" resultType="int">
+		select count(*) from food
+	</select>
+	<select id="getTotalFoodCountByCategory" parameterType="string" resultType="int">
+		select count(*)
+		from food f, CATEGORY c
+		where c.category_name=#{value} and c.category_no=f.category_no 
+	</select>
+	<select id="selectCategoryFood" parameterType="map" resultType="foodVO">
+	select * 
+	from (select row_number() over(order by f.food_postdate desc) as
+	rnum,f.food_no,f.food_name,f.mem_id,f.food_score,f.food_main_img,
+	f.food_postdate,f.food_de,c.category_no,m.mem_name
+	from food f, category c,ban_mem m
+	where c.category_name=#{category} and c.category_no=f.category_no and m.mem_id=f.mem_id) cf
+	where cf.rnum between #{startRowNumber} and #{endRowNumber}
+	</select>
+	<select id="selectAllCategoryFood" parameterType="map" resultType="foodVO">
+	select * 
+	from (select row_number() over(order by f.food_postdate desc) as
+	rnum,f.food_no,f.food_name,f.mem_id,f.food_score,f.food_main_img,f.food_postdate,f.food_de,f.category_no,m.mem_name
+	from food f, ban_mem m
+	where m.mem_id=f.mem_id) cf
+	where cf.rnum between #{startRowNumber} and #{endRowNumber}
+	</select>
+	<!-- 판매자의 판매목록 -->
+	<select id="getFoodSellInfoByMemId" parameterType="map" 
+		resultType= "foodSellVO">
+		select
+		fs.rnum,fs.food_sell_no,to_char(fs.tr_date,'YYYY-MM-DD') as tr_date,to_char(fs.close_date,'YYYY-MM-DD') as close_date,fs.price,fs.pre_quantity,
+		fs.sell_postdate,fs.food_no,fs.food_name,fs.food_main_img,fs.category_no,fs.unit,fs.food_score
+		from(select row_number() over(order by s.sell_postdate desc) as
+		rnum,s.food_sell_no,s.tr_date,s.close_date,
+		s.price,s.pre_quantity,s.sell_postdate,s.unit,
+		f.food_no,f.food_name,f.food_main_img,f.category_no,f.food_score 
+		from (select
+		food_no,food_sell_no,tr_date,close_date,price,pre_quantity,sell_postdate,unit
+		from FOOD_SELL ) s,
+		(select food_no,food_name,food_main_img,category_no,food_score
+		from FOOD where mem_id=#{memId}) f
+		where s.close_date>=sysdate and
+		f.food_no=s.food_no
+		order by s.sell_postdate desc) fs
+		where fs.rnum
+		between #{startRowNumber} and #{endRowNumber}
+	</select>
+	<select id="getAllFoodSellCountByMemId" parameterType="string" resultType="int">
+		select count(*)
+		from (select food_no from food where
+		mem_id=#{value}) f, food_sell s
+		where f.food_no=s.food_no and s.close_date>=sysdate
+	</select>
+	<select id="deleteFoodSell" parameterType="string" >
+		delete from FOOD_SELL where food_sell_no=#{value}
+	</select>
+	<select id="totalFoodSellCountByMemId" parameterType="string" resultType="int">
+	 	select count(*)
+		from (select food_no
+		from food where mem_id=#{value}) f, 
+		(select food_no,food_sell_no,close_date from food_sell ) s
+		where f.food_no=s.food_no and s.close_date>=sysdate
+	</select>
+	<!-- End 우정 -->
+
+	<!-- Start 정훈 -->
+	<!-- End 정훈 -->
+
+	<!-- Start 향걸 -->
+	<!-- End 향걸 -->
+
+	<!-- Start 지원 -->
+	<!-- 음식정보 상세조회 sql -->
+	<sql id="selectFoodDetail">
+		select food_no, food_name, food_de, food_score,
+		food_main_img, food_postdate, category_no, mem_id
+	</sql>
+	<!-- 음식번호로 음식상세정보 조회 -->
+	<select id="getFoodByNo" parameterType="string" resultType="foodVO">
+		<include refid="selectFoodDetail" />
+		from food
+		where food_no=#{value}
+	</select>
+	<!-- 판매음식번호로 판매음식정보 상세조회 -->
+	<select id="getFoodSellDetailByNo" parameterType="string" resultType="foodSellVO">
+	<![CDATA[
+		select f.food_no, f.food_name, f.food_de, f.food_score,
+		f.food_main_img, f.food_postdate, f.category_no, f.mem_id,
+		fs.food_sell_no, to_char(fs.tr_date,'YYYY-MM-DD') as tr_date, 
+		to_char(fs.close_date,'YYYY-MM-DD') as close_date, fs.loc, fs.price,
+		fs.pre_quantity, fs.sell_postdate, fs.unit, fs.sell_detail
+		from food f, food_sell fs
+		where food_sell_no=#{value} and f.food_no=fs.food_no
+	]]></select>
+	<!-- 판매음식등록 -->
+	<insert id="registerFoodSell" parameterType="foodSellVO">
+		<selectKey keyProperty="foodSellNo" resultType="string" order="BEFORE">
+			select food_sell_seq.nextval from dual
+		</selectKey>
+		insert into food_sell(food_sell_no, tr_date, close_date, loc, price,
+		pre_quantity, sell_postdate, unit, sell_detail, food_no)
+		values(#{foodSellNo}, to_date(#{trDate},'YYYY-MM-DD'), to_date(#{closeDate},'YYYY-MM-DD'),
+		#{loc}, #{price}, #{preQuantity}, sysdate, #{unit}, #{sellDetail}, #{foodNo})
+	</insert>
+	<!-- 판매음식정보 수정 -->
+	<update id="editFoodSell" parameterType="foodSellVO">
+		update food_sell set tr_date=to_date(#{trDate},'YYYY-MM-DD'), close_date=to_date(#{closeDate},'YYYY-MM-DD'),
+		loc=#{loc}, price=#{price}, pre_quantity=#{preQuantity}, unit=#{unit}, sell_detail=#{sellDetail}
+		where food_sell_no=#{foodSellNo}
+	</update>
+
+	<!-- End 지원 -->
+
+	<!-- Start 영민 -->
+	<select id="allCategorySelect" resultType="map">
+		select category_no, category_name from category
+	</select>
+	<insert id="foodRegister" parameterType="foodVO">
+		insert into food(food_no, food_name, food_de, food_score, food_main_img, food_postdate, category_no, mem_id)
+		values(food_seq.nextval, #{foodName}, #{foodDe}, 0, #{foodMainImg}, sysdate, #{categoryNo}, #{memId})
+	</insert>
+	
+<!-- <insert id="foodRegister" parameterType="foodVO">
+    insert into food (food_no, food_name, food_de, food_score, food_main_img, food_postdate, category_no, mem_id) 
+    values (food_seq.nextval, #{foodName}, #{foodDe}, 0, 
+    #{foodMainImg, jdbcType=VARCHAR}, sysdate, #{categoryNo}, #{memId})
+</insert> -->
+
+	
+	<!-- <insert id="noimgFoodRegister" parameterType="foodVO">
+		insert into food(food_no, food_name, food_de, food_score, food_main_img, food_postdate, category_no, mem_id)
+		values(food_seq.nextval, #{foodName}, #{foodDe}, 0, #{foodMainImg}, sysdate, #{categoryNo}, #{memId})
+	</insert> -->
+
+	<resultMap type="foodVO" id="memberRM">
+		<result property="sellerVO.memName" column="mem_name" />
+	</resultMap>
+	<select id="getFoodMemInfo" parameterType="string" resultMap="memberRM">
+		SELECT f.food_no, bm.mem_name,bm.mem_id, f.food_name, f.food_de, f.food_score,
+		f.category_no, f.food_main_img
+		FROM ban_mem bm, seller s, food f
+		WHERE bm.mem_id=s.mem_id and s.mem_id=f.mem_id and f.food_no=#{value}
+	</select>
+
+	<select id="selectRegFoodByNo" parameterType="string"
+		resultType="foodVO">
+		SELECT f.food_no, f.food_de, f.food_score, f.food_main_img, f.food_postdate
+		FROM food f, food_sell fs
+		WHERE f.food_no=fs.food_no and f.food_no=#{value}
+	</select>
+	<delete id="deleteRegFood" parameterType="string">
+		delete from food where food_no=#{value}
+	</delete>
+	<update id="imgUpdateRegFood" parameterType="foodVO">
+		update food set food_name=#{foodName}, food_de=#{foodDe},
+		food_main_img=#{foodMainImg}, category_no=#{categoryNo}
+		where mem_id=#{memId} and food_no=#{foodNo}
+	</update>
+	<update id="noimgUpdateRegFood" parameterType="foodVO">
+		update food set food_name=#{foodName}, food_de=#{foodDe},
+		category_no=#{categoryNo}
+		where mem_id=#{memId} and food_no=#{foodNo}
+	</update>
+
+	<resultMap type="foodVO" id="memberNameRM">
+		<result property="sellerVO.memName" column="mem_name" />
+		<result property="sellerVO.memId" column="mem_id"/>
+	</resultMap>
+	<select id="selectFoodTop3" resultMap="memberNameRM" parameterType="string">
+		<![CDATA[
+		SELECT bm.mem_name, bm.mem_id, f.food_no, f.food_name, f.food_de, f.food_score, f.food_main_img, f.rnum from
+		(select food_no, food_name, mem_id, food_de, food_score, food_main_img, row_number() over (order by food_score desc, food_postdate desc) as rnum 
+		FROM food) f, ban_mem bm, seller s
+		WHERE bm.mem_id=s.mem_id and s.mem_id=f.mem_id and f.rnum<=3]]>
+	</select>
+	<!-- End 영민 -->
+
+	<!-- Start 윤주 -->
+	<insert id="orderFood" parameterType="tradeVO">
+		insert into trade(tr_no,
+		tr_quantity, tr_req_date, tr_fin_date, mem_id, food_sell_no,
+		tr_status_no)
+		values(trade_seq.nextval,#{trQuantity}, sysdate,
+		sysdate,#{memId},#{foodSellVO.foodSellNo}, 1)
+	</insert>
+	<select id="getsumQuantityByFoodSellNo" parameterType="string"
+		resultType="int">
+		select sum(tr_quantity)
+		from(
+		select fs.pre_quantity,t.tr_quantity
+		from food_sell fs, trade t
+		where t.food_sell_no=#{value} and fs.food_sell_no=t.food_sell_no
+		)
+	</select>
+	<select id="getPreQuantityByFoodSellNo" parameterType="string"
+		resultType="int">
+		select pre_quantity
+		from food_sell
+		where
+		food_sell_no=#{value}
+	</select>
+	<!-- 검색어기능부분start -->
+			<select id="findFoodList" parameterType="string" resultType="foodVO">
+ 				<![CDATA[select food_no,food_name,food_score,food_main_img,mem_id,food_de
+ 				from food
+ 				where food_name like '%'||#{value}||'%' 
+ 			]]></select>
+		<!-- 검색어기능부분start -->
+	<!-- End 윤주 --><!--comment-->
+</mapper>
+
+
+
+
+
+
+
+
+
+

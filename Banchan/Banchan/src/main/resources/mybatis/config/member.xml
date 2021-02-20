@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sql Mapper -->
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="member">
+
+	<!-- start 광태 -->
+	<!-- <select id="selectMember" resultType="memberVO"> select mem_id,pw from 
+		ban_mem </select> -->
+	<!-- ajax id check -->
+	<select id="checkIdOnAjax" resultType="int" parameterType="string">
+		SELECT count(*)
+		FROM BAN_MEM
+		WHERE mem_id=#{value}
+	</select>
+
+	<!-- 비밀번호 찾기 질문 리스트 받기 -->
+	<select id="getAllPwQnAList" resultType="pwQnaVO">
+		SELECT PW_QNA_NO, PW_QUEST
+		FROM PW_QNA
+	</select>
+
+	<!-- 주소타입 존재하는지 확인 -->
+	<select id="checkAddressNoByAddressAPI" parameterType="memberVO"
+		resultType="string">
+		SELECT ADDRESS_NO
+		FROM ADDRESS
+		WHERE ADDRESS_API= #{addressVO.addressAPI}
+	</select>
+
+	<!-- ADDRESS 테이블에 새로운 주소지 등록 --><!-- address_API가 시스템상 유일값인데 pk처럼 중복방지 방법이 없을까요.. 현재 pk는 시퀀스인 상태고 -->
+	<insert id="registerNewAddressInfo" parameterType="addressVO">
+		<selectKey keyProperty="addressNo" resultType="string"
+			order="BEFORE"> <!-- keyProperty="addressVO.addressNo" 이것도 사용가능 -->
+			SELECT address_seq.nextval
+			FROM dual
+		</selectKey>
+		INSERT INTO ADDRESS(ADDRESS_NO, ADDRESS_API, LATITUDE, LONGITUDE)
+		VALUES(#{addressNo},#{addressAPI},#{latitude},#{longitude})
+	</insert>
+
+	<!-- 회원 정보 등록 -->
+	<insert id="registerMember" parameterType="memberVO">
+		INSERT INTO ban_mem(mem_id, pw, mem_name, birth, tel, address_de, pw_answer,
+		enable_no, address_no, pw_qna_no)
+		VALUES(#{memId},#{pw},#{memName},to_date(#{birth},'YYYY-MM-DD'),#{tel},#{addressDe},#{pwAnswer},11,#{addressVO.addressNo},#{pwQnaNo})
+	</insert>
+
+	<!-- 회원 가입시 권한 등록 -->
+	<insert id="registerMemberBasicAuth" parameterType="memberVO">
+		INSERT INTO mem_auth(mem_auth_no, mem_id, auth_no)
+		VALUES(mem_auth_seq.nextval,#{memId},'10')
+	</insert>
+
+	<!-- Start 위치 기반 쿼리쿼리쿼리 Query -->
+
+	<!-- 회원 아이디로 addressNo 정보 받기 -->
+	<select id="findMemberAddressnoById" parameterType="memberVO"
+		resultType="string">
+		SELECT address_no
+		FROM BAN_MEM
+		WHERE mem_id=#{memId}
+	</select>
+	<!-- End 위치 기반 쿼리쿼리쿼리 Query -->
+	<resultMap type="sellerVO" id="sellerRM3">
+		<result column="address_no" property="addressVO.addressNo" />
+		<result column="address_api" property="addressVO.addressAPI" />
+		<result column="latitude" property="addressVO.latitude" />
+		<result column="longitude" property="addressVO.longitude" />
+	</resultMap>
+	<select id="getAllSameAddressSellerListByAddress" resultMap="sellerRM3"
+		parameterType="string">
+		SELECT m.MEM_ID, m.PW, m.BIRTH, m.TEL, m.ADDRESS_DE,
+		m.PW_QNA_NO, m.ENABLE_NO,
+		m.MEM_NAME, m.PW_ANSWER, a.ADDRESS_NO,
+		a.ADDRESS_API, a.LATITUDE , a.LONGITUDE ,
+		s.SELLER_IMG, s.SELLER_INFO, s.SELLER_SCORE
+		FROM BAN_MEM m, address a , SELLER s
+		WHERE m.ADDRESS_NO = #{value} AND m.ADDRESS_NO=a.ADDRESS_NO AND
+		m.MEM_ID=s.MEM_ID
+	</select>
+
+	<resultMap type="sellerVO" id="sellerRMDong">
+		<result column="address_no" property="addressVO.addressNo" />
+		<result column="address_api" property="addressVO.addressAPI" />
+		<result column="latitude" property="addressVO.latitude" />
+		<result column="longitude" property="addressVO.longitude" />
+	</resultMap>
+	<select id="getSameDongSellerListByAddress" parameterType="string"
+		resultMap="sellerRMDong">
+		SELECT s.mem_id, s.seller_img, s.seller_info,
+		s.seller_score, b.mem_name,
+		a.address_no, a.address_api, a.latitude, a.longitude
+		FROM BAN_MEM b, ADDRESS a, mem_auth ma , seller s
+		WHERE b.address_no = a.address_no
+		AND b.mem_id = s.mem_id
+		AND b.mem_id = ma.mem_id
+		AND a.address_API like '%'||#{value}||'%'
+		AND ma.auth_no ='20'
+	</select>
+
+	<select id="getAddressAPIById" parameterType="string"
+		resultType="addressVO">
+		SELECT a.address_no, a.address_api, a.latitude, a.longitude
+		FROM BAN_MEM m, address a
+		WHERE m.address_no=a.address_no
+		AND mem_id=#{value}
+	</select>
+
+
+	<select id="getNearSellerAddressByAddressAPI" parameterType="string"
+		resultType="addressVO">
+		SELECT a.address_no, a.address_api, a.latitude, a.longitude
+		FROM BAN_MEM b, ADDRESS a, mem_auth ma
+		WHERE b.address_no = a.address_no
+		AND b.mem_id = ma.mem_id
+		AND a.address_API like '%'||#{value}||'%'
+		AND ma.auth_no ='20'
+	</select>
+
+	<!-- marker click시 seller List pagingbean Query -->
+	<select id="getMarkerSellerListByAddressNo" parameterType="map"
+		resultType="sellerVO">
+		SELECT mem_id, seller_img, seller_info, seller_score, mem_name
+		FROM (
+		SELECT row_number() over(order by s.seller_score desc) as rnum,
+		s.mem_id, s.seller_img, s.seller_info, s.seller_score, b.mem_name
+		FROM BAN_MEM b, ADDRESS a, mem_auth ma , seller s
+		WHERE b.address_no = a.address_no
+		AND b.mem_id = s.mem_id
+		AND b.mem_id = ma.mem_id
+		AND ma.auth_no ='20'
+		AND a.address_no = #{addressNo}
+		)
+		WHERE rnum between #{startRowNumber} and
+		#{endRowNumber}
+	</select>
+	<!-- getTotcount -->
+	<select id="getTotCountMarkerSellerList" parameterType="string"
+		resultType="int">
+		SELECT count(*)
+		FROM BAN_MEM b, ADDRESS a, mem_auth ma , seller s
+		WHERE b.address_no = a.address_no
+		AND b.mem_id = s.mem_id
+		AND b.mem_id = ma.mem_id
+		AND ma.auth_no ='20'
+		AND a.address_no = #{value}
+	</select>
+	<!-- End 광태 -->
+
+	<!-- Start 우정 -->
+
+	<resultMap type="sellerVO" id="addressRM">
+		<result column="address_no" property="addressVO.addressNo" />
+		<result column="address_api" property="addressVO.addressAPI" />
+		<result column="latitude" property="addressVO.latitude" />
+		<result column="longitude" property="addressVO.longitude" />
+	</resultMap>
+	<select id="selectSellerInfo" resultMap="addressRM"
+		parameterType="string">
+		select
+		b.mem_id,b.pw,b.birth,b.tel,b.address_no,a.address_api,a.latitude,a.longitude,
+		b.address_de,b.pw_qna_no,b.enable_no,b.mem_name,b.pw_answer,
+		s.seller_img,s.seller_info,s.seller_score
+		from seller s, ban_mem
+		b,address a
+		where b.mem_id=#{value} and s.mem_id=b.mem_id and
+		a.address_no=b.address_no
+
+	</select>
+	<!-- End 우정 -->
+
+	<!-- Start 정훈 -->
+	<!-- <resultMap type="memberVO" id="memberRM"> <result property="memId" 
+		column="mem_id" /> <result property="memName" column="mem_name" /> </resultMap> -->
+	<resultMap type="sellerVO" id="sellerRM">
+		<result property="memId" column="mem_id" />
+		<result property="memName" column="mem_name" />
+		<result property="addressVO.addressAPI" column="address_api" />
+		<result property="sellerImg" column="seller_img" />
+		<result property="sellerInfo" column="seller_info" />
+		<result property="sellerScore" column="seller_score" />
+	</resultMap>
+	<select id="selectSellerTop3" resultMap="sellerRM">
+	 	<![CDATA[select m.mem_id, m.mem_name, a.address_api, s.seller_img, s.seller_info, s.seller_score , rnum
+from (select mem_id, seller_score, seller_info, seller_img, row_number() over(order by seller_score desc) as rnum from seller)
+s, ban_mem m, address a 
+where m.mem_id=s.mem_id and m.address_no=a.address_no and rnum<=3]]>
+
+	</select> 
+	<select id="findPwQnaNo" parameterType="pwQnaVO" resultType="PwQnaVO">
+		select pw_qna_no, pw_Quest from pw_qna where pw_qna_no=#{value}
+	</select>
+	<select id="findMemberTypeById" parameterType="string"
+		resultType="sellerVO">
+		select seller_img, seller_info from seller where
+		mem_id=#{value}
+	</select>
+
+	<!-- update 구매자 -->
+	<update id="editMemberBuyer" parameterType="memberVO">
+		update ban_mem set
+		pw=#{pw}, mem_name=#{memName}, birth=#{birth}, tel=#{tel},
+		address_de=#{addressDe}, pw_answer=#{pwAnswer},
+		address_no=#{addressVO.addressNo}, pw_qna_no=#{pwQnaNo}
+		where
+		mem_id=#{memId}
+	</update>
+
+	<!-- update 판매자 -->
+	<update id="editMemberSeller" parameterType="sellerVO">
+		update ban_mem set
+		pw=#{pw}, mem_name=#{memName}, birth=#{birth}, tel=#{tel},
+		address_de=#{addressDe}, pw_answer=#{pwAnswer},
+		address_no=#{addressVO.addressNo}, pw_qna_no=#{pwQnaNo}
+		where
+		mem_id=#{memId}
+	</update>
+
+	<!-- 주소타입 존재하는지 확인 -->
+	<select id="checkAddressNoByAddressAPIByUpdate" parameterType="memberVO"
+		resultType="string">
+		SELECT ADDRESS_NO
+		FROM ADDRESS
+		WHERE ADDRESS_API= #{addressVO.addressAPI}
+	</select>
+ 
+	<!-- ADDRESS 테이블에 새로운 주소지 등록 --><!-- address_API가 시스템상 유일값인데 pk처럼 중복방지 방법이 없을까요.. 현재 pk는 시퀀스인 상태고 -->
+	<insert id="registerNewAddressInfoByUpdate" parameterType="addressVO">
+		<selectKey keyProperty="addressNo" resultType="string"
+			order="BEFORE"> <!-- keyProperty="addressVO.addressNo" 이것도 사용가능 -->
+			SELECT address_seq.nextval
+			FROM dual
+		</selectKey>
+		INSERT INTO ADDRESS(ADDRESS_NO, ADDRESS_API, LATITUDE, LONGITUDE)
+		VALUES(#{addressNo},#{addressAPI},#{latitude},#{longitude})
+	</insert>
+	<!-- 판매자 이미지, 정보 저장-이미지 있을 때 -->
+	<update id="editMemberSellerInfoAndImage" parameterType="sellerVO">
+		update seller set seller_img=#{sellerImg}, seller_info=#{sellerInfo} where
+		mem_id=#{memId}
+	</update>
+	<!-- 판매자 이미지, 정보 저장-이미지 업을 때 -->
+	<update id="editMemberSellerNoImage" parameterType="sellerVO">
+		update seller set seller_info=#{sellerInfo} where mem_id=#{memId}
+	</update>
+
+	<!-- 주소들고오기 -->
+	<select id="findMemberAddressAPIById" parameterType="string"
+		resultType="addressVO">
+		SELECT a.ADDRESS_API, a.LATITUDE, a.LONGITUDE
+		FROM ban_mem m, ADDRESS a
+		WHERE
+		a.address_no=m.address_no and m.mem_id=#{value}
+	</select>
+	<!-- End 정훈 -->
+
+	<!-- Start 향걸 -->
+	<sql id="selectMember">
+		select mem_id, pw, mem_name, to_char(to_date(birth), 'yyyy-mm-dd')as birth,
+		tel, address_de, pw_answer, enable_no, address_no, pw_qna_no from
+		ban_mem
+	</sql>
+	<select id="selectMember" resultType="memberVO">
+		select mem_id,pw from ban_mem
+	</select>
+	<select id="findMemberById" resultType="memberVO">
+		<include refid="selectMember" />
+		where mem_id=#{value} and enable_no=11
+	</select>
+	<!-- Spring Security에서 권한 체크를 위해 사용 -->
+	<select id="selectAuthorityByMemId" resultType="authority">
+		SELECT bm.mem_id,
+		bm.pw, bm.address_no, bm.address_de, bm.pw_QNA_NO, bm.mem_name,
+		bm.pw_answer, a.auth_name, a.auth_no
+		FROM ban_mem bm, mem_auth ma, auth a
+		WHERE ma.mem_id=bm.mem_id and
+		a.auth_no=ma.auth_no and bm.mem_id=#{value}
+	</select>
+	<select id="idcheck" resultType="int">
+		select count(*) from ban_mem
+		where mem_id=#{value}
+	</select>
+	<select id="getQnaList" resultType="pwQnaVO">
+		SELECT PW_QUEST,PW_QNA_NO
+		FROM PW_QNA
+	</select>
+	<update id="deleteMember">
+		update ban_mem set ENABLE_no=22 where mem_Id=#{value}
+	</update>
+	<delete id="deleteMemberAuth">
+		delete from MEM_AUTH where mem_id=#{value}
+	</delete>
+	<select id="findPasswordCheck" resultType="int">
+		select count(*) from
+		ban_mem where mem_Id=#{memId} and mem_Name=#{memName} and tel=#{tel}
+	</select>
+	<select id="findPasswordQnaCheck" resultType="int">
+		select count(*)
+		from ban_mem where mem_Id=#{memId} and pw_qna_no=#{pwQnaNo} and
+		pw_answer=#{pwAnswer} and mem_name=#{memName}
+	</select>
+	<update id="resetPassword" parameterType="memberVO">
+		update
+		ban_mem set pw=#{pw} where mem_id=#{memId}
+	</update>
+	<!-- End 향걸 -->
+
+	<!-- Start 지원 -->
+	<!-- End 지원 -->
+
+	<!-- Start 영민 -->
+	<!-- End 영민 -->
+
+	<!-- Start 윤주 -->
+	<select id="isSeller" resultType="int">
+		select count(*) from mem_auth
+		where mem_id=#{value} and auth_no='20'
+	</select>
+	<insert id="insertAuth" parameterType="authority">
+		insert into mem_auth(mem_auth_no, mem_id, auth_no)
+		values(mem_auth_seq.nextval,#{memId},#{authNo})
+	</insert>
+	<insert id="sellerRegister" parameterType="sellerVO">
+		insert into seller(mem_id, seller_img, seller_info, seller_score)
+		values(#{memId},#{sellerImg},#{sellerInfo},0)
+	</insert>
+	<select id="getSellerNameByMemId" parameterType="string"
+		resultType="string">
+		select mem_name
+		from ban_mem
+		where mem_id=#{value}
+	</select>
+    <resultMap type="sellerVO" id="searchSellerRM">
+       <result property="addressVO.addressAPI" column="address_api"/>
+    </resultMap>
+    <select id="findSellerList" parameterType="string" resultMap="searchSellerRM">
+        select s.mem_id,s.seller_img,s.seller_info,s.seller_score,m.mem_name,m.tel, a.address_api
+       from (select mem_id,seller_img,seller_info,seller_score from seller) s,
+             ban_mem m, address a
+        where m.mem_name like '%'||#{value}||'%' and s.mem_id=m.mem_id
+        and m.address_no=a.address_no
+     </select>
+	<!-- End 윤주 -->
+
+
+	<!-- Start 지원 -->
+	<resultMap type="memberVO" id="memberInfoRM">
+		<result property="addressVO.addressAPI" column="address_api" />
+	</resultMap>
+	<select id="getBuyerInfo" parameterType="string" resultMap="memberInfoRM">
+		select mem_id, mem_name, tel, address_api
+		from ban_mem m, address a
+		where m.address_no=a.address_no and m.mem_id=#{value}
+	</select>
+
+
+	<!-- End 지원 -->
+
+
+</mapper>
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sql Mapper -->
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="report">
+	<!-- Start 윤주 -->
+	<sql id="selectReport">
+		select keyword,hit from banchan_report
+	</sql>
+ 	<select id="isKeywordExistInReportTable" parameterType="string" resultType="int">
+ 		select count(*) from banchan_report where keyword=#{value}
+ 	</select>
+ 	<insert id="insertKeyword" parameterType="reportVO">
+ 		insert into banchan_report(keyword,hit) values(#{keyword},#{hit})
+ 	</insert>
+ 	<update id="updateKeyword" parameterType="string">
+ 		update banchan_report set hit=hit+1 where keyword=#{value}
+ 	</update>
+ 	<select id="getReport" resultType="reportVO">
+		<![CDATA[select keyword,hit,rk from(select keyword,hit,row_number() over(order by hit desc) as rk from banchan_report)
+		where rk<=5]]>
+ 	</select>
+	<!-- End 윤주 -->
+</mapper>
+
+
+
+
+
+
+
+
+
+
